@@ -1,5 +1,6 @@
 package kst.app.fcottintro
 
+import android.animation.LayoutTransition
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color
@@ -23,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private var isGateringMotionAnimation:Boolean= false
+    private var isCurationMotionAnimating: Boolean = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -31,41 +33,9 @@ class MainActivity : AppCompatActivity() {
         makeStatusBarTransparent()
         initAppBar()
         initInsetMargin()
+        initScrollViewListeners()
+        initMotionLayoutListeners()
 
-        binding.scrollView.viewTreeObserver.addOnScrollChangedListener {
-            Log.d("gwan2103_1","scrollY >>>>> ${binding.scrollView.scrollY}")
-            Log.d("gwan2103_1","dpToPx >>>>> ${150f.dpToPx(this).toInt()}")
-            if (binding.scrollView.scrollY > 150){
-                Log.d("gwan2103_2","scrollY >>>>> ${binding.scrollView.scrollY}")
-                Log.d("gwan2103_2","dpToPx >>>>> ${150f.dpToPx(this).toInt()}")
-                if (!isGateringMotionAnimation){
-                    Log.d("gwan2103_3","scrollY >>>>> ${binding.scrollView.scrollY}")
-                    Log.d("gwan2103_3","dpToPx >>>>> ${150f.dpToPx(this).toInt()}")
-                    binding.gatheringDigitalThingsLayout.transitionToEnd()
-                    binding.buttonShownLayout.transitionToEnd()
-                }
-            } else {
-                Log.d("gwan2103_4","scrollY >>>>> ${binding.scrollView.scrollY}")
-                Log.d("gwan2103_4","dpToPx >>>>> ${150f.dpToPx(this).toInt()}")
-                if (!isGateringMotionAnimation){
-                    Log.d("gwan2103_5","scrollY >>>>> ${binding.scrollView.scrollY}")
-                    Log.d("gwan2103_5","dpToPx >>>>> ${150f.dpToPx(this).toInt()}")
-                    binding.gatheringDigitalThingsLayout.transitionToStart()
-                    binding.buttonShownLayout.transitionToStart()
-                }
-            }
-        }
-
-        binding.gatheringDigitalThingsLayout.setTransitionListener(object : MotionLayout.TransitionListener{
-            override fun onTransitionStarted(motionLayout: MotionLayout?, startId: Int, endId: Int) {
-                isGateringMotionAnimation = true
-            }
-            override fun onTransitionChange(motionLayout: MotionLayout?, startId: Int, endId: Int, progress: Float)  = Unit
-            override fun onTransitionCompleted(motionLayout: MotionLayout?, currentId: Int) {
-                isGateringMotionAnimation = false
-            }
-            override fun onTransitionTrigger(motionLayout: MotionLayout?, triggerId: Int, positive: Boolean, progress: Float) = Unit
-        })
     }
 
     private fun initAppBar(){
@@ -73,7 +43,7 @@ class MainActivity : AppCompatActivity() {
             val topPadding = 300f.dpToPx(this)
             val realAlphaScrollHeight = appBarLayout.measuredHeight - appBarLayout.totalScrollRange
             val abstractOffset = abs(verticalOffset)
-
+            //상단 앱바 움직임
             val realAlphaVerticalOffset = if (abstractOffset - topPadding < 0) 0f else abstractOffset - topPadding
 
             if (abstractOffset < topPadding) {
@@ -99,19 +69,83 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initInsetMargin() = with(binding) {
-        ViewCompat.setOnApplyWindowInsetsListener(cordinator) { v: View, insets: WindowInsetsCompat ->
+        ViewCompat.setOnApplyWindowInsetsListener(coordinator) { v: View, insets: WindowInsetsCompat ->
             val params = v.layoutParams as ViewGroup.MarginLayoutParams
             params.bottomMargin = insets.systemWindowInsetBottom
             toolbarContainer.layoutParams = (toolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
                 setMargins(0, insets.systemWindowInsetTop, 0, 0)
             }
-            collapsingToolBarContainer.layoutParams = (collapsingToolBarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
+            collapsingToolbarContainer.layoutParams = (collapsingToolbarContainer.layoutParams as ViewGroup.MarginLayoutParams).apply {
                 setMargins(0, 0, 0, 0)
             }
 
             insets.consumeSystemWindowInsets()
         }
     }
+
+    private fun initScrollViewListeners() {
+        binding.scrollView.smoothScrollTo(0, 0)
+
+        binding.scrollView.viewTreeObserver.addOnScrollChangedListener {
+            val scrolledValue = binding.scrollView.scrollY
+
+            if (scrolledValue > 150) {
+                if (isGateringMotionAnimation.not()) {
+                    binding.gatheringDigitalThingsBackgroundMotionLayout.transitionToEnd()
+                    binding.gatheringDigitalThingsMotionLayout.transitionToEnd()
+                    binding.buttonShownMotionLayout .transitionToEnd()
+                }
+            } else {
+                if (isGateringMotionAnimation.not()) {
+                    binding.gatheringDigitalThingsBackgroundMotionLayout.transitionToStart()
+                    binding.gatheringDigitalThingsMotionLayout.transitionToStart()
+                    binding.buttonShownMotionLayout.transitionToStart()
+                }
+            }
+
+            if (scrolledValue > binding.scrollView.height) {
+                if (isGateringMotionAnimation.not()) {
+                    binding.curationAnimationMotionLayout.setTransition(R.id.curation_animation_start1, R.id.curation_animation_end1)
+                    binding.curationAnimationMotionLayout.transitionToEnd()
+                    isCurationMotionAnimating = true
+                }
+            }
+        }
+    }
+
+    private fun initMotionLayoutListeners() {
+        binding.gatheringDigitalThingsMotionLayout.setTransitionListener(object : MotionLayout.TransitionListener {
+            override fun onTransitionStarted(motionLayout: MotionLayout?, startId: Int, endId: Int) {
+                isGateringMotionAnimation = true
+            }
+
+            override fun onTransitionChange(motionLayout: MotionLayout?, startId: Int, endId: Int, progress: Float) = Unit
+            override fun onTransitionCompleted(motionLayout: MotionLayout?, currentId: Int) {
+                isGateringMotionAnimation = false
+            }
+
+            override fun onTransitionTrigger(motionLayout: MotionLayout?, triggerId: Int, positive: Boolean, progress: Float) = Unit
+        })
+
+        binding.curationAnimationMotionLayout.setTransitionListener(object : MotionLayout.TransitionListener {
+            override fun onTransitionStarted(p0: MotionLayout?, p1: Int, p2: Int) = Unit
+
+            override fun onTransitionChange(p0: MotionLayout?, p1: Int, p2: Int, p3: Float) = Unit
+
+            override fun onTransitionCompleted(p0: MotionLayout?, currentId: Int) {
+                when (currentId) {
+                    R.id.curation_animation_end1 -> {
+                        binding.curationAnimationMotionLayout.setTransition(R.id.curation_animation_start2, R.id.curation_animation_end2)
+                        binding.curationAnimationMotionLayout.transitionToEnd()
+                    }
+                }
+            }
+
+            override fun onTransitionTrigger(p0: MotionLayout?, p1: Int, p2: Boolean, p3: Float) = Unit
+
+        })
+    }
+
 }
 
 fun Float.dpToPx(context: Context): Float =
